@@ -1,7 +1,20 @@
-# Bifrost minimal-server allowlist (initial placeholder)
-# One package FMRI or stem per line.
-# Example entries (to be refined from dependency inventory):
-# runtime/python-311
-# runtime/perl-536
-# service/network/ssh
-# system/file-system/zfs
+# Bifrost minimal-server allowlist
+# One package FMRI/stem per line.
+# This file is intentionally conservative; finalize entries from dependency inventory.
+#
+# Core boot/admin baseline (candidate set)
+service/network/ssh
+system/file-system/zfs
+system/library
+shell/ksh93
+shell/bash
+text/gnu-coreutils
+text/gnu-grep
+text/gnu-sed
+text/gnu-tar
+network/rsync
+
+# Packaging/runtime baseline (policy-required until replaced)
+package/pkg
+runtime/python
+runtime/perl
