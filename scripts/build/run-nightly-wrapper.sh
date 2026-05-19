@@ -21,7 +21,7 @@ Options:
   --gate PATH      Path to bifrost-gate checkout (default: ~/repos/bifrost-gate)
   --env FILE       Path to nightly env file (default: config/nightly.env)
   --atlog DIR      Nightly ATLOG root (default: ~/repos/bifrost-build/logs)
-  --incremental    Compatibility flag: remove clobber ('C') from NIGHTLY_OPTIONS
+  --incremental    Compatibility flag: remove clobber ('C') and ensure 'i'
 USAGE
 }
 
@@ -93,7 +93,12 @@ RUNENV
 
 if [[ "${INCREMENTAL}" -eq 1 ]]; then
   cat >> "${RUN_ENV}" <<'RUNENV'
-export NIGHTLY_OPTIONS="${NIGHTLY_OPTIONS//C/}"
+NIGHTLY_OPTIONS="${NIGHTLY_OPTIONS//C/}"
+case "${NIGHTLY_OPTIONS}" in
+  *i*) ;;
+  *) NIGHTLY_OPTIONS="${NIGHTLY_OPTIONS}i" ;;
+esac
+export NIGHTLY_OPTIONS
 RUNENV
 fi
 
