@@ -13,7 +13,7 @@ fi
 
 usage() {
   cat <<'USAGE'
-Usage: run-nightly-wrapper.sh [--gate PATH] [--env FILE] [--atlog DIR]
+Usage: run-nightly-wrapper.sh [--gate PATH] [--env FILE] [--atlog DIR] [--incremental]
 
 Runs illumos nightly against bifrost-gate using nightly-native logging.
 
@@ -21,12 +21,14 @@ Options:
   --gate PATH      Path to bifrost-gate checkout (default: ~/repos/bifrost-gate)
   --env FILE       Path to nightly env file (default: config/nightly.env)
   --atlog DIR      Nightly ATLOG root (default: ~/repos/bifrost-build/logs)
+  --incremental    Compatibility flag: remove clobber ('C') from NIGHTLY_OPTIONS
 USAGE
 }
 
 GATE_PATH="${BIFROST_GATE_PATH:-${HOME}/repos/bifrost-gate}"
 NIGHTLY_ENV="${BIFROST_NIGHTLY_ENV:-${DEFAULT_HOST_ENV}}"
 ATLOG_ROOT="${BIFROST_ATLOG_ROOT:-${HOME}/repos/bifrost-build/logs}"
+INCREMENTAL=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -41,6 +43,10 @@ while [[ $# -gt 0 ]]; do
     --atlog)
       ATLOG_ROOT="${2:?missing value for --atlog}"
       shift 2
+      ;;
+    --incremental)
+      INCREMENTAL=1
+      shift 1
       ;;
     -h|--help)
       usage
@@ -85,12 +91,19 @@ export LOGFILE="${ATLOG_ROOT}/nightly.log"
 export MULTI_PROTO="no"
 RUNENV
 
+if [[ "${INCREMENTAL}" -eq 1 ]]; then
+  cat >> "${RUN_ENV}" <<'RUNENV'
+export NIGHTLY_OPTIONS="${NIGHTLY_OPTIONS//C/}"
+RUNENV
+fi
+
 echo "bifrost profile: ${BIFROST_PROFILE:-unknown}"
 echo "gate path: ${GATE_PATH}"
 echo "nightly env(base): ${NIGHTLY_ENV}"
 echo "nightly env(run): ${RUN_ENV}"
 echo "nightly bin: ${NIGHTLY_BIN}"
 echo "atlog root: ${ATLOG_ROOT}"
+echo "incremental mode: ${INCREMENTAL}"
 echo "tail file: ${ATLOG_ROOT}/latest/nightly.log"
 
 set -x
