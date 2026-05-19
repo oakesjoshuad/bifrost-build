@@ -7,7 +7,7 @@ DEFAULT_POLICY_ENV="${REPO_ROOT}/config/policy.env"
 DEFAULT_HOST_ENV="${REPO_ROOT}/config/nightly.env"
 
 usage() {
-  cat <<'EOF'
+  cat <<USAGE
 Usage: run-nightly-wrapper.sh [--gate PATH] [--env FILE] [--log-dir DIR]
 
 Runs illumos nightly against bifrost-gate with deterministic logs.
@@ -16,7 +16,7 @@ Options:
   --gate PATH     Path to bifrost-gate checkout (default: ~/repos/bifrost-gate)
   --env FILE      Path to illumos nightly env file (default: config/nightly.env)
   --log-dir DIR   Output log directory (default: /var/tmp/bifrost-build/logs/<timestamp>)
-EOF
+USAGE
 }
 
 GATE_PATH="${HOME}/repos/bifrost-gate"
@@ -65,9 +65,14 @@ if [[ ! -f "${NIGHTLY_ENV}" ]]; then
   exit 11
 fi
 
-if ! command -v nightly >/dev/null 2>&1; then
-  echo "nightly command not found in PATH" >&2
-  exit 12
+NIGHTLY_BIN="${NIGHTLY_BIN:-/opt/onbld/bin/nightly}"
+if [[ ! -x "${NIGHTLY_BIN}" ]]; then
+  if command -v nightly >/dev/null 2>&1; then
+    NIGHTLY_BIN="$(command -v nightly)"
+  else
+    echo "nightly command not found (tried /opt/onbld/bin/nightly and PATH)" >&2
+    exit 12
+  fi
 fi
 
 if [[ -z "${LOG_DIR}" ]]; then
@@ -76,13 +81,29 @@ if [[ -z "${LOG_DIR}" ]]; then
 fi
 mkdir -p "${LOG_DIR}"
 
+RUN_ATLOG="${LOG_DIR}/atlog"
+RUN_LOGFILE="${LOG_DIR}/nightly.log"
+RUN_ENV="${LOG_DIR}/nightly.env"
+mkdir -p "${RUN_ATLOG}"
+
+cp "${NIGHTLY_ENV}" "${RUN_ENV}"
+cat >> "${RUN_ENV}" <<RUNENV
+export ATLOG="${RUN_ATLOG}"
+export LOGFILE="${RUN_LOGFILE}"
+export MULTI_PROTO="no"
+RUNENV
+
 echo "bifrost profile: ${BIFROST_PROFILE:-unknown}"
 echo "gate path: ${GATE_PATH}"
-echo "nightly env: ${NIGHTLY_ENV}"
+echo "nightly env(base): ${NIGHTLY_ENV}"
+echo "nightly env(run): ${RUN_ENV}"
+echo "nightly bin: ${NIGHTLY_BIN}"
 echo "log dir: ${LOG_DIR}"
+echo "atlog dir: ${RUN_ATLOG}"
+echo "nightly logfile: ${RUN_LOGFILE}"
 
 set -x
-( cd "${GATE_PATH}" && nightly -V -n -F "${NIGHTLY_ENV}" ) \
+( cd "${GATE_PATH}" && "${NIGHTLY_BIN}" -n "${RUN_ENV}" ) \
   > "${LOG_DIR}/nightly.stdout.log" \
   2> "${LOG_DIR}/nightly.stderr.log"
 set +x
