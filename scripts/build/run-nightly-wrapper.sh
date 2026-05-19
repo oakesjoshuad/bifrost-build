@@ -91,6 +91,20 @@ export LOGFILE="${ATLOG_ROOT}/nightly.log"
 export MULTI_PROTO="no"
 RUNENV
 
+if ! grep -q '^export MACH=' "${RUN_ENV}"; then
+  host_mach="$(uname -p)"
+  echo "export MACH=\"${host_mach}\"" >> "${RUN_ENV}"
+fi
+
+if ! grep -q '^export MACH64=' "${RUN_ENV}"; then
+  case "${host_mach:-$(uname -p)}" in
+    sparc) mach64_default="sparcv9" ;;
+    i386) mach64_default="amd64" ;;
+    *) mach64_default="${host_mach:-$(uname -p)}" ;;
+  esac
+  echo "export MACH64=\"${mach64_default}\"" >> "${RUN_ENV}"
+fi
+
 if [[ "${INCREMENTAL}" -eq 1 ]]; then
   cat >> "${RUN_ENV}" <<'RUNENV'
 NIGHTLY_OPTIONS="${NIGHTLY_OPTIONS//C/}"
