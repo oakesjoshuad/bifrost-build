@@ -7,21 +7,23 @@ DEFAULT_POLICY_ENV="${REPO_ROOT}/config/policy.env"
 DEFAULT_HOST_ENV="${REPO_ROOT}/config/nightly.env"
 
 usage() {
-  cat <<USAGE
-Usage: run-nightly-wrapper.sh [--gate PATH] [--env FILE] [--log-dir DIR]
+  cat <<'USAGE'
+Usage: run-nightly-wrapper.sh [--gate PATH] [--env FILE] [--log-root DIR] [--retain N]
 
-Runs illumos nightly against bifrost-gate with deterministic logs.
+Runs illumos nightly against bifrost-gate using nightly's native logging layout.
 
 Options:
-  --gate PATH     Path to bifrost-gate checkout (default: ~/repos/bifrost-gate)
-  --env FILE      Path to illumos nightly env file (default: config/nightly.env)
-  --log-dir DIR   Output log directory (default: /var/tmp/bifrost-build/logs/<timestamp>)
+  --gate PATH      Path to bifrost-gate checkout (default: ~/repos/bifrost-gate)
+  --env FILE       Path to nightly env file (default: config/nightly.env)
+  --log-root DIR   Parent directory for per-run logs (default: /var/tmp/bifrost-build/logs)
+  --retain N       Number of previous run-* dirs to keep (default: 0)
 USAGE
 }
 
 GATE_PATH="${HOME}/repos/bifrost-gate"
 NIGHTLY_ENV="${DEFAULT_HOST_ENV}"
-LOG_DIR=""
+LOG_ROOT="/var/tmp/bifrost-build/logs"
+RETAIN_RUNS=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -33,8 +35,12 @@ while [[ $# -gt 0 ]]; do
       NIGHTLY_ENV="${2:?missing value for --env}"
       shift 2
       ;;
-    --log-dir)
-      LOG_DIR="${2:?missing value for --log-dir}"
+    --log-root)
+      LOG_ROOT="${2:?missing value for --log-root}"
+      shift 2
+      ;;
+    --retain)
+      RETAIN_RUNS="${2:?missing value for --retain}"
       shift 2
       ;;
     -h|--help)
@@ -75,39 +81,46 @@ if [[ ! -x "${NIGHTLY_BIN}" ]]; then
   fi
 fi
 
-if [[ -z "${LOG_DIR}" ]]; then
-  ts="$(date +%Y%m%d-%H%M%S)"
-  LOG_DIR="/var/tmp/bifrost-build/logs/${ts}"
-fi
-mkdir -p "${LOG_DIR}"
+mkdir -p "${LOG_ROOT}"
+ts="$(date +%Y%m%d-%H%M%S)"
+RUN_DIR="${LOG_ROOT}/run-${ts}"
+mkdir -p "${RUN_DIR}"
 
-RUN_ATLOG="${LOG_DIR}/atlog"
-RUN_LOGFILE="${LOG_DIR}/nightly.log"
-RUN_ENV="${LOG_DIR}/nightly.env"
-mkdir -p "${RUN_ATLOG}"
-
+# Let nightly own its native log layout under ATLOG:
+#   ATLOG/log.<date>/{nightly.log,mail_msg}, ATLOG/latest, ATLOG/nightly.lock
+RUN_ENV="${RUN_DIR}/nightly.env"
 cp "${NIGHTLY_ENV}" "${RUN_ENV}"
 cat >> "${RUN_ENV}" <<RUNENV
-export ATLOG="${RUN_ATLOG}"
-export LOGFILE="${RUN_LOGFILE}"
+export ATLOG="${RUN_DIR}"
+export LOGFILE="${RUN_DIR}/nightly.log"
 export MULTI_PROTO="no"
 RUNENV
+
+# Keep this run and optionally keep N older run-* dirs.
+if [[ "${RETAIN_RUNS}" =~ ^[0-9]+$ ]]; then
+  mapfile -t run_dirs < <(ls -1dt "${LOG_ROOT}"/run-* 2>/dev/null || true)
+  keep_count=$((RETAIN_RUNS + 1))
+  if (( ${#run_dirs[@]} > keep_count )); then
+    for old in "${run_dirs[@]:keep_count}"; do
+      rm -rf "${old}"
+    done
+  fi
+fi
 
 echo "bifrost profile: ${BIFROST_PROFILE:-unknown}"
 echo "gate path: ${GATE_PATH}"
 echo "nightly env(base): ${NIGHTLY_ENV}"
 echo "nightly env(run): ${RUN_ENV}"
 echo "nightly bin: ${NIGHTLY_BIN}"
-echo "log dir: ${LOG_DIR}"
-echo "atlog dir: ${RUN_ATLOG}"
-echo "nightly logfile: ${RUN_LOGFILE}"
+echo "log root: ${LOG_ROOT}"
+echo "run dir: ${RUN_DIR}"
+echo "tail file: ${RUN_DIR}/latest/nightly.log"
 
 set -x
-( cd "${GATE_PATH}" && "${NIGHTLY_BIN}" -n "${RUN_ENV}" ) \
-  > "${LOG_DIR}/nightly.stdout.log" \
-  2> "${LOG_DIR}/nightly.stderr.log"
+( cd "${GATE_PATH}" && "${NIGHTLY_BIN}" -n "${RUN_ENV}" )
 set +x
 
 echo "nightly completed"
-echo "stdout: ${LOG_DIR}/nightly.stdout.log"
-echo "stderr: ${LOG_DIR}/nightly.stderr.log"
+echo "run dir: ${RUN_DIR}"
+echo "latest bundle: ${RUN_DIR}/latest"
+echo "nightly summary log: ${RUN_DIR}/nightly.log"
