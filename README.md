@@ -24,7 +24,7 @@ This repository defines overlays, manifests, and artifact generation for a minim
 ## Related Repos
 
 - `bifrost`: orchestration docs, ADRs, runbooks
-- `bifrost-gate`: illumos-gate integration
+- `illumos-gate`: illumos-gate integration
 - `bifrost-userland`: userland/package baseline
 
 ## Quick Start
@@ -33,4 +33,4 @@ This repository defines overlays, manifests, and artifact generation for a minim
 2. Ensure `nightly` is available on the build host.
 3. Run:
    - `bash scripts/build/check-policy.sh`
-   - `bash scripts/build/run-nightly-wrapper.sh --gate ~/repos/bifrost-gate`
+   - `bash scripts/build/run-nightly-wrapper.sh --gate ~/repos/illumos-gate`

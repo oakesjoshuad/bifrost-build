@@ -15,17 +15,17 @@ usage() {
   cat <<'USAGE'
 Usage: run-nightly-wrapper.sh [--gate PATH] [--env FILE] [--atlog DIR] [--incremental]
 
-Runs illumos nightly against bifrost-gate using nightly-native logging.
+Runs illumos nightly against illumos-gate using nightly-native logging.
 
 Options:
-  --gate PATH      Path to bifrost-gate checkout (default: ~/repos/bifrost-gate)
+  --gate PATH      Path to illumos-gate checkout (default: ~/repos/illumos-gate)
   --env FILE       Path to nightly env file (default: config/nightly.env)
   --atlog DIR      Nightly ATLOG root (default: ~/repos/bifrost-build/logs)
   --incremental    Compatibility flag: remove clobber ('C') and ensure 'i'
 USAGE
 }
 
-GATE_PATH="${BIFROST_GATE_PATH:-${HOME}/repos/bifrost-gate}"
+GATE_PATH="${BIFROST_GATE_PATH:-${HOME}/repos/illumos-gate}"
 NIGHTLY_ENV="${BIFROST_NIGHTLY_ENV:-${DEFAULT_HOST_ENV}}"
 ATLOG_ROOT="${BIFROST_ATLOG_ROOT:-${HOME}/repos/bifrost-build/logs}"
 INCREMENTAL=0

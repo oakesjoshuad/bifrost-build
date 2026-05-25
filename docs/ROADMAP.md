@@ -1,7 +1,7 @@
 # Bifrost Build Roadmap
 
 1. Define minimal-server package allowlist from dependency inventory.
-2. Wire build wrapper to `bifrost-gate` nightly outputs.
+2. Wire build wrapper to `illumos-gate` nightly outputs.
 3. Wire package publish/promote flow.
 4. Generate netboot artifacts (primary).
 5. Add USB fallback artifact generation.
