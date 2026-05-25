@@ -34,3 +34,6 @@ This repository defines overlays, manifests, and artifact generation for a minim
 3. Run:
    - `bash scripts/build/check-policy.sh`
    - `bash scripts/build/run-nightly-wrapper.sh --gate ~/repos/illumos-gate`
+
+SPARC note:
+- The nightly wrapper auto-configures a per-user GNU assembler shim (`as -> /usr/bin/gas`) and exports `COMPILER_PATH`/`PATH` in the generated env. This avoids Sun `as` syntax failures during tools bootstrap.

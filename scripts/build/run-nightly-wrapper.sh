@@ -91,6 +91,16 @@ export LOGFILE="${ATLOG_ROOT}/nightly.log"
 export MULTI_PROTO="no"
 RUNENV
 
+if [[ "$(uname -p)" == "sparc" && -x /usr/bin/gas ]]; then
+  GNU_AS_SHIM_DIR="${BIFROST_GNU_AS_SHIM_DIR:-${HOME}/.bifrost-tools/gnu-bin}"
+  mkdir -p "${GNU_AS_SHIM_DIR}"
+  ln -sf /usr/bin/gas "${GNU_AS_SHIM_DIR}/as"
+  cat >> "${RUN_ENV}" <<RUNENV
+export COMPILER_PATH="${GNU_AS_SHIM_DIR}\${COMPILER_PATH:+:\${COMPILER_PATH}}"
+export PATH="${GNU_AS_SHIM_DIR}:\${PATH}"
+RUNENV
+fi
+
 if ! grep -q '^export MACH=' "${RUN_ENV}"; then
   host_mach="$(uname -p)"
   echo "export MACH=\"${host_mach}\"" >> "${RUN_ENV}"
